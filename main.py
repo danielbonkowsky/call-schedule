@@ -1,14 +1,14 @@
 import sys
 
 from ortools.sat.python import cp_model
-from util import validate_schedule, parse_validate_args
+from util import parse_validate_args, build_schedule
 
 def main():
     """Create a valid call schedule using constraint solvers"""
 
     args = parse_validate_args()
-    schedule = validate_schedule(args)
-
+    schedule = build_schedule(args)
+    
     # Initialize the model
     model = cp_model.CpModel()
 
