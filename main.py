@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 from ortools.sat.python import cp_model
 import pandas as pd
-from util import validate_schedule, get_names, get_weeks
+from util import validate_schedule, Schedule
 
 tasks = ["A", "A_prime", "B", "C"]
 
@@ -25,20 +25,19 @@ def main():
     # Define solver vars
     # assignments[(p, w, t)] == 1 if person p does task t in week w
     assignments = {}
-    for p in get_names(schedule):
-        for w in get_weeks(schedule):
+    for p in schedule.names:
+        for w in schedule.weeks:
             for t in tasks:
                 assignments[(p, w, t)] = model.NewBoolVar(f'p{p}_w{w}_t{t}')
     
     # Each week must have someone on A call and someone on C call
-    for w in get_weeks(schedule):
+    for w in schedule.weeks:
         model.Add(
-            sum(assignments[(p, w, 'A')] for p in get_names(schedule)) == 1
+            sum(assignments[(p, w, 'A')] for p in schedule.names) == 1
         )
         model.Add(
-            sum(assignments[(p, w, 'C')] for p in get_names(schedule)) == 1
+            sum(assignments[(p, w, 'C')] for p in schedule.names) == 1
         )
-
 
 
 if __name__ == "__main__":

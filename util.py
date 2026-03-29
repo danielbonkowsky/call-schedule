@@ -6,6 +6,31 @@ from pathlib import Path
 import numpy as np
 
 
+class Schedule:
+    """Schedule class with validated dataframe for easy access"""
+
+    def __init__(self, df: pd.DataFrame):
+        self._df = df
+
+    @property
+    def names(self) -> list[str]:
+        """Returns the names of all physicians in the schedule"""
+
+        return list(self._df.columns)[1:-1]
+    
+    @property
+    def weeks(self) -> list[str]:
+        """Returns a list of all the weeks in the schedule"""
+
+        return self._df["Week"].to_list()
+    
+    def week_has_fellow(self, week: str) -> bool:
+        """Determine whether a given week has a fellow assigned"""
+
+        result = self._df.loc[self._df["Week"] == week, "Fellow"]
+        return result.values[0] in {"", np.nan, None, ""}
+        
+
 def _validate_7_day_intervals(date_strings: list[str]) -> tuple[bool, str]:
     """Validate that the dates are all 7 days apart"""
 
@@ -82,14 +107,4 @@ def validate_schedule(schedule_file: Path) -> pd.DataFrame:
             print(f"Invalid data at col {c}, row {r}: {data}")
         sys.exit(1)
     
-    return schedule
-
-def get_names(schedule: pd.DataFrame) -> list[str]:
-    """Returns the names of all physicians in the schedule"""
-
-    return list(schedule.columns)[1:-1]
-
-def get_weeks(schedule: pd.DataFrame) -> list[str]:
-    """Returns a list of all the weeks in the schedule"""
-
-    return schedule["Week"].to_list()
+    return Schedule(schedule)
