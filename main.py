@@ -1,23 +1,15 @@
 import sys
-import argparse
 
-from pathlib import Path
 from ortools.sat.python import cp_model
-import pandas as pd
-from util import validate_schedule, Schedule
+from util import validate_schedule, parse_validate_args
 
 tasks = ["A", "A_prime", "B", "C"]
 
 def main():
-    # Get CLI input
-    parser = argparse.ArgumentParser(description="Create a call schedule")
-    parser.add_argument(
-        "schedule_file",
-        help="The file containing vacation requests and fellow data",
-        type=Path,
-    )
-    args = parser.parse_args()
-    schedule = validate_schedule(args.schedule_file)
+    """Create a valid call schedule using constraint solvers"""
+
+    args = parse_validate_args()
+    schedule = validate_schedule(args)
 
     # Initialize the model
     model = cp_model.CpModel()
@@ -56,7 +48,7 @@ def main():
     
     # One task per person
     for p in schedule.names:
-        for w in schedule.week:
+        for w in schedule.weeks:
             model.Add(sum(assignments[(p, w, t)] for t in tasks) <= 1)
 
     # Russ rules
@@ -67,13 +59,6 @@ def main():
 
     model.Add(sum(assignments[("Russ", w, "A")] for w in schedule.weeks) == 2)
     # TODO: Russ can only be on A call when there is a fellow
-
-    # Ensure no A calls are back-to-back
-    for p in schedule.names:
-        for w in range(len(schedule.weeks) - 1):
-            model.Add(
-                assignments[(p, w, "A")] + assignments[(p, w + 1, "A")] <= 1
-            )
 
 
 if __name__ == "__main__":
