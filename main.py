@@ -3,8 +3,6 @@ import sys
 from ortools.sat.python import cp_model
 from util import validate_schedule, parse_validate_args
 
-tasks = ["A", "A_prime", "B", "C"]
-
 def main():
     """Create a valid call schedule using constraint solvers"""
 
@@ -19,7 +17,7 @@ def main():
     assignments = {}
     for p in schedule.names:
         for w in schedule.weeks:
-            for t in tasks:
+            for t in schedule.tasks:
                 assignments[(p, w, t)] = model.NewBoolVar(f"p{p}_w{w}_t{t}")
     
     # Week coverage -- each week must have someone on A call, someone on C call
@@ -36,11 +34,11 @@ def main():
                 sum(assignments[(p, w, "B")] for p in schedule.names) == 1
             )
             model.Add(
-                sum(assignments[(p, w, "A_prime")] for p in schedule.names) == 0
+                sum(assignments[(p, w, "A'")] for p in schedule.names) == 0
             )
         else:
             model.Add(
-                sum(assignments[(p, w, "A_prime")] for p in schedule.names) == 1
+                sum(assignments[(p, w, "A'")] for p in schedule.names) == 1
             )
             model.Add(
                 sum(assignments[(p, w, "B")] for p in schedule.names) == 0
@@ -49,11 +47,11 @@ def main():
     # One task per person
     for p in schedule.names:
         for w in schedule.weeks:
-            model.Add(sum(assignments[(p, w, t)] for t in tasks) <= 1)
+            model.Add(sum(assignments[(p, w, t)] for t in schedule.tasks) <= 1)
 
     # Russ rules
     for w in schedule.weeks:
-        model.Add(assignments[("Russ", w, "A_prime")] == 0)
+        model.Add(assignments[("Russ", w, "A'")] == 0)
         model.Add(assignments[("Russ", w, "B")] == 0)
         model.Add(assignments[("Russ", w, "C")] == 0)
 

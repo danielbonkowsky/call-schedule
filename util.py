@@ -31,6 +31,12 @@ class Schedule:
 
         return self._vacation["Week"].to_list()
     
+    @property
+    def tasks(self) -> list[str]:
+        """Returns all the tasks defined in task_counts"""
+
+        return self._task_counts["Task"].to_list()
+    
     def week_has_fellow(self, week: str) -> bool:
         """Determine whether a given week has a fellow assigned"""
 
