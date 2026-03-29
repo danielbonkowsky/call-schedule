@@ -42,7 +42,11 @@ class Schedule:
 
         result = self._fellow_schedule.loc[self._fellow_schedule["Week"] == week, "Fellow"]
         return result.values[0] in {"", np.nan, None}
+    
+    def target_task_amount(self, name: str, task: str) -> int:
+        """Return the target assignment for a person for a task"""
 
+        return int(self._task_counts.loc[self._task_counts["Task"] == task, name].values[0])
 
 def _validate_weeks(
         vacation: pd.DataFrame, 
