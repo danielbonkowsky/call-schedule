@@ -163,6 +163,9 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
                 sys.exit(
                     f'Task counts: Invalid value "{val}" in column "{col}", expected a positive number'
                 )
+    
+    # Replace empty values with 0
+    task_counts = task_counts.fillna(0)
 
     return Schedule(
         vacation=vacation, 
