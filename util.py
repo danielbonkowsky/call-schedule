@@ -87,7 +87,7 @@ def _validate_weeks(
     return vacation, fellow_schedule
 
 
-def validate_schedule(args: argparse.Namespace) -> Schedule:
+def build_schedule(args: argparse.Namespace) -> Schedule:
     """Takes in validated args and returns a full Schedule"""
 
     # Read file
@@ -172,6 +172,8 @@ def validate_schedule(args: argparse.Namespace) -> Schedule:
 
 
 def parse_validate_args() -> argparse.Namespace:
+    """Parse CLI args and makes sure they point to valid files"""
+
     parser = argparse.ArgumentParser(description="Create a call schedule")
     parser.add_argument(
         "output_file",
