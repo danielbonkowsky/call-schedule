@@ -28,16 +28,52 @@ def main():
     for p in schedule.names:
         for w in schedule.weeks:
             for t in tasks:
-                assignments[(p, w, t)] = model.NewBoolVar(f'p{p}_w{w}_t{t}')
+                assignments[(p, w, t)] = model.NewBoolVar(f"p{p}_w{w}_t{t}")
     
-    # Each week must have someone on A call and someone on C call
+    # Week coverage -- each week must have someone on A call, someone on C call
+    # and A' or B call depending on fellow
     for w in schedule.weeks:
         model.Add(
-            sum(assignments[(p, w, 'A')] for p in schedule.names) == 1
+            sum(assignments[(p, w, "A")] for p in schedule.names) == 1
         )
         model.Add(
-            sum(assignments[(p, w, 'C')] for p in schedule.names) == 1
+            sum(assignments[(p, w, "C")] for p in schedule.names) == 1
         )
+        if schedule.week_has_fellow(w):
+            model.Add(
+                sum(assignments[(p, w, "B")] for p in schedule.names) == 1
+            )
+            model.Add(
+                sum(assignments[(p, w, "A_prime")] for p in schedule.names) == 0
+            )
+        else:
+            model.Add(
+                sum(assignments[(p, w, "A_prime")] for p in schedule.names) == 1
+            )
+            model.Add(
+                sum(assignments[(p, w, "B")] for p in schedule.names) == 0
+            )
+    
+    # One task per person
+    for p in schedule.names:
+        for w in schedule.week:
+            model.Add(sum(assignments[(p, w, t)] for t in tasks) <= 1)
+
+    # Russ rules
+    for w in schedule.weeks:
+        model.Add(assignments[("Russ", w, "A_prime")] == 0)
+        model.Add(assignments[("Russ", w, "B")] == 0)
+        model.Add(assignments[("Russ", w, "C")] == 0)
+
+    model.Add(sum(assignments[("Russ", w, "A")] for w in schedule.weeks) == 2)
+    # TODO: Russ can only be on A call when there is a fellow
+
+    # Ensure no A calls are back-to-back
+    for p in schedule.names:
+        for w in range(len(schedule.weeks) - 1):
+            model.Add(
+                assignments[(p, w, "A")] + assignments[(p, w + 1, "A")] <= 1
+            )
 
 
 if __name__ == "__main__":
