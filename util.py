@@ -3,6 +3,7 @@ import sys
 import pandas as pd
 from datetime import datetime, date
 from pathlib import Path
+import numpy as np
 
 
 def _validate_7_day_intervals(date_strings: list[str]) -> tuple[bool, str]:
@@ -65,6 +66,21 @@ def validate_schedule(schedule_file: Path) -> pd.DataFrame:
     valid, msg = _validate_7_day_intervals(schedule["Week"].to_list())
     if not valid:
         sys.exit(msg)
+
+    # Validate data
+    allowed_vals = {"no", "noa", "noab", "nob", np.nan, None, ""}
+    filtered_schedule = schedule.drop(columns=["Week"])
+    valid_mask = filtered_schedule.isin(allowed_vals)
+    all_valid = valid_mask.all().all()
+
+    if not all_valid:
+        invalid_mask = ~valid_mask
+        row_indices, col_indices = np.where(invalid_mask)
+        for r, c in zip(row_indices, col_indices):
+            data = filtered_schedule.iloc[r, c]
+            
+            print(f"Invalid data at col {c}, row {r}: {data}")
+        sys.exit(1)
     
     return schedule
 
