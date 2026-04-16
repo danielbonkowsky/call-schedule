@@ -1,9 +1,9 @@
 import sys
 
 from ortools.sat.python import cp_model
-from util import parse_validate_args, build_schedule
+from util import parse_validate_args, build_schedule, solution_to_dataframe
 
-def main():
+def main() -> int:
     """Create a valid call schedule using constraint solvers"""
 
     args = parse_validate_args()
@@ -125,10 +125,19 @@ def main():
         print("Feasible solution found (but not proven optimal)")
     elif status == cp_model.INFEASIBLE:
         print("No solution exists")
+        return -1
     elif status == cp_model.MODEL_INVALID:
         print("Model is invalid")
+        return -1
     else:  # UNKNOWN
         print("Solver stopped before finding a solution")
+        return -1
+
+    df = solution_to_dataframe(solver, assignments, schedule)
+    df.to_csv(args.output_file, index=False)
+    print(f"Schedule written to {args.output_file}")
+    return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
