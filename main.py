@@ -21,7 +21,7 @@ def main() -> int:
                 assignments[(p, w, t)] = model.NewBoolVar(f"p{p}_w{w}_t{t}")
     
     # Week coverage -- each week must have someone on A call, someone on C call
-    # and A' or B call depending on fellow
+    # and B' or B call depending on fellow
     for w in schedule.weeks:
         model.Add(
             sum(assignments[(p, w, "A")] for p in schedule.names) == 1
@@ -34,11 +34,11 @@ def main() -> int:
                 sum(assignments[(p, w, "B")] for p in schedule.names) == 1
             )
             model.Add(
-                sum(assignments[(p, w, "A'")] for p in schedule.names) == 0
+                sum(assignments[(p, w, "B'")] for p in schedule.names) == 0
             )
         else:
             model.Add(
-                sum(assignments[(p, w, "A'")] for p in schedule.names) == 1
+                sum(assignments[(p, w, "B'")] for p in schedule.names) == 1
             )
             model.Add(
                 sum(assignments[(p, w, "B")] for p in schedule.names) == 0
@@ -69,7 +69,7 @@ def main() -> int:
         for i in range(len(schedule.weeks) - 2):
             w1, w2, w3 = schedule.weeks[i], schedule.weeks[i + 1], schedule.weeks[i + 2]
             model.Add(
-                assignments[(p, w1, "A'")] + assignments[(p, w2, "A'")] + assignments[(p, w3, "A'")] <= 2
+                assignments[(p, w1, "B'")] + assignments[(p, w2, "B'")] + assignments[(p, w3, "B'")] <= 2
             )
             model.Add(
                 assignments[(p, w1, "B")] + assignments[(p, w2, "B")] + assignments[(p, w3, "B")] <= 2
@@ -89,7 +89,7 @@ def main() -> int:
 
     # Russ rules
     for w in schedule.weeks:
-        model.Add(assignments[("Russ", w, "A'")] == 0)
+        model.Add(assignments[("Russ", w, "B'")] == 0)
         model.Add(assignments[("Russ", w, "B")] == 0)
         model.Add(assignments[("Russ", w, "C")] == 0)
 
