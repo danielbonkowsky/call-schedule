@@ -19,34 +19,40 @@ class Schedule:
         self._fellow_schedule = fellow_schedule
         self._task_counts = task_counts
 
+
     @property
     def names(self) -> list[str]:
         """Returns the names of all physicians in the schedule"""
 
         return list(self._vacation.columns)[1:]
     
+
     @property
     def weeks(self) -> list[str]:
         """Returns a list of all the weeks in the schedule"""
 
         return self._vacation["Week"].to_list()
     
+
     @property
     def tasks(self) -> list[str]:
         """Returns all the tasks defined in task_counts"""
 
         return self._task_counts["Task"].to_list()
     
+
     def week_has_fellow(self, week: str) -> bool:
         """Determine whether a given week has a fellow assigned"""
 
         result = self._fellow_schedule.loc[self._fellow_schedule["Week"] == week, "Fellow"]
         return result.values[0] in {"", np.nan, None}
     
+
     def target_task_amount(self, name: str, task: str) -> int:
         """Return the target assignment for a person for a task"""
 
         return int(self._task_counts.loc[self._task_counts["Task"] == task, name].values[0])
+
 
 def _validate_weeks(
         vacation: pd.DataFrame, 
