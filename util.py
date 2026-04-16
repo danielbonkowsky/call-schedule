@@ -184,6 +184,22 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
     )
 
 
+def solution_to_dataframe(solver, assignments: dict, schedule: Schedule) -> pd.DataFrame:
+    """Convert a CP-SAT solution to a DataFrame with weeks as rows and names as columns"""
+
+    data = {"Week": schedule.weeks}
+    for p in schedule.names:
+        column = []
+        for w in schedule.weeks:
+            assigned = next(
+                (t for t in schedule.tasks if solver.Value(assignments[(p, w, t)]) == 1),
+                ""
+            )
+            column.append(assigned)
+        data[p] = column
+    return pd.DataFrame(data)
+
+
 def parse_validate_args() -> argparse.Namespace:
     """Parse CLI args and makes sure they point to valid files"""
 
