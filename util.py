@@ -42,10 +42,10 @@ class Schedule:
     
 
     def status_during_week(self, name: str, week: str) -> str:
-        """Return the physician's availability during a given week"""
+        """Return the physician's availability during a given week. Returns {"no call", "vacation", "if needed", ""}"""
 
         result = self._vacation.loc[self._vacation["Week"] == week, name]
-        return result.values[0].lower()
+        return "" if result.values[0] in {"", np.nan, None} else result.values[0].lower()
 
 
     def target_task_amount(self, name: str, task: str) -> int:
@@ -146,7 +146,7 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
         sys.exit(msg)
 
     # Make sure values in vacation schedule are {no call, vacation, if needed}
-    valid_vacation_values = {"no call", "vacation", "if needed"}
+    valid_vacation_values = {"no call", "no a", "vacation", "if needed"}
     for col in vacation.columns[1:]:
         for idx, val in vacation[col].items():
             if pd.isna(val) or val == "":
