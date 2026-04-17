@@ -46,19 +46,24 @@ class Schedule:
         """Return the physician's availability during a given week. Returns {"no call", "vacation", "if needed", ""}"""
 
         result = self._vacation.loc[self._vacation["Week"] == week, name]
-        return "" if result.values[0] in {"", np.nan, None} else result.values[0].lower()
+        val = result.values[0]
+        return val.lower() if isinstance(val, str) and val else ""
 
 
     def target_task_amount(self, name: str, task: str) -> int:
         """Return the target assignment for a person for a task"""
 
-        return int(self._task_counts.loc[self._task_counts["Task"] == task, name].values[0])
+        result = self._task_counts.loc[self._task_counts["Task"] == task, name]
+        return int(result.values[0])
 
 
     def week_has_fellow(self, week: str) -> bool:
         """Determine whether a given week has a fellow assigned"""
 
-        result = self._fellow_schedule.loc[self._fellow_schedule["Week"] == week, "Fellow"]
+        result = self._fellow_schedule.loc[
+            self._fellow_schedule["Week"] == week,
+            "Fellow",
+        ]
         return result.values[0] in {"", np.nan, None}
 
 
@@ -75,31 +80,40 @@ def _validate_weeks(
             try:
                 formatted.append(pd.to_datetime(val).strftime("%m-%d-%y"))
             except Exception:
-                sys.exit(f'{source}: Could not parse date "{val}" in row {idx + 2}')
+                sys.exit(
+                    f'{source}: Could not parse date "{val}" in row {idx + 2}'
+                )
         return pd.Series(formatted, index=series.index)
 
     vacation = vacation.copy()
     fellow_schedule = fellow_schedule.copy()
     vacation["Week"] = parse_weeks(vacation["Week"], "Vacation file")
-    fellow_schedule["Week"] = parse_weeks(fellow_schedule["Week"], "Fellow schedule")
+    fellow_schedule["Week"] = parse_weeks(
+        fellow_schedule["Week"],
+        "Fellow schedule"
+    )
 
     # Ensure that weeks match between dataframes
     if vacation["Week"].tolist() != fellow_schedule["Week"].tolist():
-        sys.exit("Weeks do not match between vacation schedule and fellow schedule")
+        sys.exit(
+            "Weeks do not match between vacation schedule and fellow schedule"
+        )
 
     # Ensure that weeks start on Monday and are 7 days apart
     dates = [datetime.strptime(val, "%m-%d-%y") for val in vacation["Week"]]
     for i, dt in enumerate(dates):
         if dt.weekday() != 0:
             sys.exit(
-                f'Vacation file: Week "{vacation["Week"].iloc[i]}" does not start on a Monday'
+                f'Vacation file: Week "{vacation["Week"].iloc[i]}" does not '
+                f'start on a Monday'
             )
         if i > 0:
             delta = (dt - dates[i - 1]).days
             if delta != 7:
                 sys.exit(
-                    f'Weeks "{vacation["Week"].iloc[i-1]}" and "{vacation["Week"].iloc[i]}" '
-                    f'are {delta} days apart, expected 7'
+                    f'Weeks "{vacation["Week"].iloc[i-1]}" and '
+                    f'"{vacation["Week"].iloc[i]}" are {delta} days apart, '
+                    'expected 7'
                 )
 
     return vacation, fellow_schedule
@@ -116,15 +130,18 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
     # Validate file formats
     if list(vacation.columns)[0] != "Week":
         sys.exit(
-            f'Vacation file: Expected first column "Week", got "{list(vacation.columns)[0]}"'
+            f'Vacation file: Expected first column "Week", got '
+            f'"{list(vacation.columns)[0]}"'
         )
     if list(fellow_schedule.columns)[0] != "Week":
         sys.exit(
-            f'Fellow schedule: Expected first column "Week", got "{list(fellow_schedule.columns)[0]}"'
+            f'Fellow schedule: Expected first column "Week", got '
+            f'"{list(fellow_schedule.columns)[0]}"'
         )
     if list(fellow_schedule.columns)[1] != "Fellow":
         sys.exit(
-            f'Fellow schedule: Expected second column "Fellow", got "{list(fellow_schedule.columns)[1]}"'
+            f'Fellow schedule: Expected second column "Fellow", got '
+            f'"{list(fellow_schedule.columns)[1]}"'
         )
     if len(list(fellow_schedule.columns)) > 2:
         sys.exit(
@@ -141,9 +158,14 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
         extra_in_tasks = task_count_names - vacation_names
         msg = "Names do not match between vacation schedule and task counts."
         if extra_in_vacation:
-            msg += f" In vacation but not task counts: {sorted(extra_in_vacation)}."
+            msg += (
+                f" In vacation but not task counts: "
+                f"{sorted(extra_in_vacation)}."
+            )
         if extra_in_tasks:
-            msg += f" In task counts but not vacation: {sorted(extra_in_tasks)}."
+            msg += (
+                f" In task counts but not vacation: {sorted(extra_in_tasks)}."
+            )
         sys.exit(msg)
 
     # Make sure values in vacation schedule are {no call, vacation, if needed}
@@ -154,7 +176,8 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
                 continue
             if str(val).strip().lower() not in valid_vacation_values:
                 sys.exit(
-                    f'Vacation file: Invalid value "{val}" in column "{col}", row {idx + 2}'
+                    f'Vacation file: Invalid value "{val}" in column "{col}", '
+                    f'row {idx + 2}'
                 )
 
     # Make sure values in fellow schedule are {no, empty}
@@ -175,11 +198,13 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
                 num = float(val)
                 if num <= 0:
                     sys.exit(
-                        f'Task counts: Value "{val}" in column "{col}" must be positive'
+                        f'Task counts: Value "{val}" in column "{col}" must be '
+                        f'positive'
                     )
             except (ValueError, TypeError):
                 sys.exit(
-                    f'Task counts: Invalid value "{val}" in column "{col}", expected a positive number'
+                    f'Task counts: Invalid value "{val}" in column "{col}", '
+                    f'expected a positive number'
                 )
     
     # Replace empty values with 0
@@ -192,17 +217,22 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
     )
 
 
-def solution_to_dataframe(solver, assignments: dict, schedule: Schedule) -> pd.DataFrame:
+def solution_to_dataframe(
+        solver, 
+        assignments: dict, 
+        schedule: Schedule
+    ) -> pd.DataFrame:
     """Convert a CP-SAT solution to a DataFrame with weeks as rows and names as columns"""
 
     data = {"Week": schedule.weeks}
     for p in schedule.names:
         column = []
         for w in schedule.weeks:
-            assigned = next(
-                (t for t in schedule.tasks if solver.Value(assignments[(p, w, t)]) == 1),
-                ""
+            matching = (
+                t for t in schedule.tasks 
+                if solver.Value(assignments[(p, w, t)]) == 1
             )
+            assigned = next(matching, "")
             column.append(assigned)
         data[p] = column
     df = pd.DataFrame(data)
@@ -239,7 +269,10 @@ def parse_validate_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--task-counts",
-        help="File with the number of tasks to be assigned per person (must be .csv)",
+        help=(
+            "File with the number of tasks to be assigned per person (must be "
+            ".csv)"
+        ),
         type=Path,
         required=True,
     )

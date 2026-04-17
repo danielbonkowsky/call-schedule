@@ -68,20 +68,26 @@ def main() -> int:
                     model.Add(assignments[(p, w, t)] == 0)
             elif status == "no call":
                 vacation_penalties.append(
-                    NO_CALL_PENALTY * sum(assignments[(p, w, t)] for t in schedule.tasks)
+                    NO_CALL_PENALTY * 
+                    sum(assignments[(p, w, t)] for t in schedule.tasks)
                 )
             elif status == "if needed":
                 vacation_penalties.append(
-                    IF_NEEDED_PENALTY * sum(assignments[(p, w, t)] for t in schedule.tasks)
+                    IF_NEEDED_PENALTY * 
+                    sum(assignments[(p, w, t)] for t in schedule.tasks)
                 )
             elif status == "no a":
-                vacation_penalties.append(NO_A_PENALTY * assignments[(p, w, "A")])
+                vacation_penalties.append(
+                    NO_A_PENALTY * assignments[(p, w, "A")]
+                )
 
     # A person cannot be assigned A Call 2 weeks in a row
     for p in schedule.names:
         for i in range(len(schedule.weeks) - 1):
             w1, w2 = schedule.weeks[i], schedule.weeks[i + 1]
-            model.Add(assignments[(p, w1, "A")] + assignments[(p, w2, "A")] <= 1)
+            model.Add(
+                assignments[(p, w1, "A")] + assignments[(p, w2, "A")] <= 1
+            )
 
     # Prefer > 2 weeks between A Call assignments (soft constraint)
     a_close_penalties = []
@@ -89,32 +95,53 @@ def main() -> int:
         for i in range(len(schedule.weeks) - 2):
             w1, w3 = schedule.weeks[i], schedule.weeks[i + 2]
             close = model.NewBoolVar(f"a_close_{p}_{i}")
-            model.AddMinEquality(close, [assignments[(p, w1, "A")], assignments[(p, w3, "A")]])
+            model.AddMinEquality(
+                close,
+                [assignments[(p, w1, "A")],
+                 assignments[(p, w3, "A")]]
+            )
             a_close_penalties.append(A_CLOSE_PENALTY * close)
 
     # B’, B, and C call can be assigned up to 2 weeks in a row
     for p in schedule.names:
         for i in range(len(schedule.weeks) - 2):
-            w1, w2, w3 = schedule.weeks[i], schedule.weeks[i + 1], schedule.weeks[i + 2]
+            w1 = schedule.weeks[i]
+            w2 = schedule.weeks[i + 1]
+            w3 = schedule.weeks[i + 2]
             model.Add(
-                assignments[(p, w1, "B'")] + assignments[(p, w2, "B'")] + assignments[(p, w3, "B'")] <= 2
+                assignments[(p, w1, "B'")] 
+                + assignments[(p, w2, "B'")] 
+                + assignments[(p, w3, "B'")] 
+                <= 2
             )
             model.Add(
-                assignments[(p, w1, "B")] + assignments[(p, w2, "B")] + assignments[(p, w3, "B")] <= 2
+                assignments[(p, w1, "B")] 
+                + assignments[(p, w2, "B")] 
+                + assignments[(p, w3, "B")] 
+                <= 2
             )
             model.Add(
-                assignments[(p, w1, "C")] + assignments[(p, w2, "C")] + assignments[(p, w3, "C")] <= 2
+                assignments[(p, w1, "C")] 
+                + assignments[(p, w2, "C")] 
+                + assignments[(p, w3, "C")] 
+                <= 2
             )
 
     # Prefer C call in 2-week blocks over 1-week blocks (soft constraint)
     c_streak_penalties = []
     for p in schedule.names:
         for i in range(len(schedule.weeks) - 2):
-            w1, w2, w3 = schedule.weeks[i], schedule.weeks[i + 1], schedule.weeks[i + 2]
+            w1 = schedule.weeks[i]
+            w2 = schedule.weeks[i + 1]
+            w3 = schedule.weeks[i + 2]
             isolated = model.NewBoolVar(f"c_isolated_{p}_{i}")
             model.AddMinEquality(
                 isolated,
-                [assignments[(p, w2, "C")], assignments[(p, w1, "C")].Not(), assignments[(p, w3, "C")].Not()]
+                [
+                    assignments[(p, w2, "C")], 
+                    assignments[(p, w1, "C")].Not(), 
+                    assignments[(p, w3, "C")].Not()
+                ]
             )
             c_streak_penalties.append(C_STREAK_PENALTY * isolated)
 
@@ -142,15 +169,27 @@ def main() -> int:
     total_deviation_penalties = []
     max_weeks = len(schedule.weeks)
     for p in schedule.names:
-        total_target = sum(schedule.target_task_amount(p, t) for t in schedule.tasks)
-        total_assigned = sum(assignments[(p, w, t)] for w in schedule.weeks for t in schedule.tasks)
+        total_target = sum(
+            schedule.target_task_amount(p, t) for t in schedule.tasks
+        )
+        total_assigned = sum(
+            assignments[(p, w, t)] 
+            for w in schedule.weeks for t in schedule.tasks
+        )
         diff = model.NewIntVar(-max_weeks, max_weeks, f"total_diff_{p}")
         model.Add(diff == total_assigned - total_target)
         abs_diff = model.NewIntVar(0, max_weeks, f"total_abs_diff_{p}")
         model.AddAbsEquality(abs_diff, diff)
-        total_deviation_penalties.append(TASK_COUNT_DEVIATION_PENALTY * abs_diff)
+        total_deviation_penalties.append(
+            TASK_COUNT_DEVIATION_PENALTY * abs_diff
+        )
 
-    model.Minimize(sum(a_close_penalties) + sum(c_streak_penalties) + sum(total_deviation_penalties) + sum(vacation_penalties))
+    model.Minimize(
+        sum(a_close_penalties) 
+        + sum(c_streak_penalties) 
+        + sum(total_deviation_penalties) 
+        + sum(vacation_penalties)
+    )
 
     solver = cp_model.CpSolver()
     status = solver.Solve(model)
