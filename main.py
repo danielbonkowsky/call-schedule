@@ -107,14 +107,19 @@ def main() -> int:
                 for w in schedule.weeks:
                     model.Add(assignments[(p, w, t)] == 0)
 
-    # Total assignments per person should not vary by more than +/-1 from their target total
+    # Total assignments per person should be close to their target total (soft constraint)
+    total_deviation_penalties = []
+    max_weeks = len(schedule.weeks)
     for p in schedule.names:
         total_target = sum(schedule.target_task_amount(p, t) for t in schedule.tasks)
         total_assigned = sum(assignments[(p, w, t)] for w in schedule.weeks for t in schedule.tasks)
-        model.Add(total_assigned >= total_target - 1)
-        model.Add(total_assigned <= total_target + 1)
+        diff = model.NewIntVar(-max_weeks, max_weeks, f"total_diff_{p}")
+        model.Add(diff == total_assigned - total_target)
+        abs_diff = model.NewIntVar(0, max_weeks, f"total_abs_diff_{p}")
+        model.AddAbsEquality(abs_diff, diff)
+        total_deviation_penalties.append(abs_diff)
 
-    model.Minimize(sum(a_close_penalties) + sum(c_streak_penalties))
+    model.Minimize(sum(a_close_penalties) + sum(c_streak_penalties) + sum(total_deviation_penalties))
 
     solver = cp_model.CpSolver()
     status = solver.Solve(model)
