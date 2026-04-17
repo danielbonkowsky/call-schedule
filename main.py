@@ -48,6 +48,25 @@ def main() -> int:
     for p in schedule.names:
         for w in schedule.weeks:
             model.Add(sum(assignments[(p, w, t)] for t in schedule.tasks) <= 1)
+    
+    # Vacation constraints and preferences
+    vacation_penalties = []
+    for p in schedule.names:
+        for w in schedule.weeks:
+            status = schedule.status_during_week(p, w)
+            if status == "vacation":
+                for t in schedule.tasks:
+                    model.Add(assignments[(p, w, t)] == 0)
+            elif status == "no call":
+                vacation_penalties.append(
+                    NO_CALL_PENALTY * sum(assignments[(p, w, t)] for t in schedule.tasks)
+                )
+            elif status == "if needed":
+                vacation_penalties.append(
+                    IF_NEEDED_PENALTY * sum(assignments[(p, w, t)] for t in schedule.tasks)
+                )
+            elif status == "no a":
+                vacation_penalties.append(NO_A_PENALTY * assignments[(p, w, "A")])
 
     # A person cannot be assigned A Call 2 weeks in a row
     for p in schedule.names:
@@ -119,7 +138,7 @@ def main() -> int:
         model.AddAbsEquality(abs_diff, diff)
         total_deviation_penalties.append(abs_diff)
 
-    model.Minimize(sum(a_close_penalties) + sum(c_streak_penalties) + sum(total_deviation_penalties))
+    model.Minimize(sum(a_close_penalties) + sum(c_streak_penalties) + sum(total_deviation_penalties) + sum(vacation_penalties))
 
     solver = cp_model.CpSolver()
     status = solver.Solve(model)
