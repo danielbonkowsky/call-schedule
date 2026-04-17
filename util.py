@@ -41,6 +41,13 @@ class Schedule:
         return self._task_counts["Task"].to_list()
     
 
+    def status_during_week(self, name: str, week: str) -> str:
+        """Return the physician's availability during a given week"""
+
+        result = self._vacation.loc[self._vacation["Week"] == week, name]
+        return result.values[0].lower()
+
+
     def week_has_fellow(self, week: str) -> bool:
         """Determine whether a given week has a fellow assigned"""
 
@@ -138,8 +145,8 @@ def build_schedule(args: argparse.Namespace) -> Schedule:
             msg += f" In task counts but not vacation: {sorted(extra_in_tasks)}."
         sys.exit(msg)
 
-    # Make sure values in vacation schedule are {no, noa, noab, empty}
-    valid_vacation_values = {"no", "noa", "noab"}
+    # Make sure values in vacation schedule are {no call, vacation, if needed}
+    valid_vacation_values = {"no call", "vacation", "if needed"}
     for col in vacation.columns[1:]:
         for idx, val in vacation[col].items():
             if pd.isna(val) or val == "":
