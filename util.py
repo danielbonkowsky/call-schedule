@@ -197,7 +197,15 @@ def solution_to_dataframe(solver, assignments: dict, schedule: Schedule) -> pd.D
             )
             column.append(assigned)
         data[p] = column
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+
+    for task in schedule.tasks:
+        total_row = {"Week": f"{task} total"}
+        for p in schedule.names:
+            total_row[p] = (df[p] == task).sum()
+        df = pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
+
+    return df
 
 
 def parse_validate_args() -> argparse.Namespace:
