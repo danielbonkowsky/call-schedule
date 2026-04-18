@@ -145,6 +145,36 @@ def main() -> int:
             )
             c_streak_penalties.append(C_STREAK_PENALTY * isolated)
 
+    # Can't give three assignments in a row (regardless of type)
+    for p in schedule.names:
+        for i in range(len(schedule.weeks) - 2):
+            w1, w2, w3 = schedule.weeks[i]
+            w2 = schedule.weeks[i + 1]
+            w3 = schedule.weeks[i + 2]
+            model.Add(
+                sum(
+                    assignments[(p, w, t)] 
+                    for w in [w1, w2, w3] for t in schedule.tasks
+                ) <= 2
+            )
+
+    # Can't assign call on BOTH 12/21 and 12/28 (within the same year)
+    christmas_weeks = {
+        w[6:]: w for w in schedule.weeks if w.startswith("12-21")
+    }
+    new_years_weeks = {
+        w[6:]: w for w in schedule.weeks if w.startswith("12-28")
+    }
+    for year in set(christmas_weeks) & set(new_years_weeks):
+        w_christmas = christmas_weeks[year]
+        w_new_years = new_years_weeks[year]
+        for p in schedule.names:
+            model.Add(
+                sum(assignments[(p, w_christmas, t)] for t in schedule.tasks)
+                + sum(assignments[(p, w_new_years, t)] for t in schedule.tasks)
+                <= 1
+            )
+
     # Russ rules
     for w in schedule.weeks:
         model.Add(assignments[("Russ", w, "B'")] == 0)
