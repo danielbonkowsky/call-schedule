@@ -9,7 +9,7 @@ NO_CALL_PENALTY = 10              # penalty for scheduling someone during a week
 NO_A_PENALTY = 10                 # penalty for scheduling someone during a week they requested "no a"
 IF_NEEDED_PENALTY = 3             # penalty for scheduling someone during a week they requested "if needed"
 TASK_COUNT_DEVIATION_PENALTY = 10 # penalty for deviating from someone's task count (per deviation)
-C_STREAK_PENALTY = 5              # penalty for scheduling C call in a one week block, rather than two weeks
+C_STREAK_PENALTY = 3              # penalty for scheduling C call in a one week block, rather than two weeks
 
 
 def main() -> int:
