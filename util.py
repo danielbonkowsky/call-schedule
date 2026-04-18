@@ -224,24 +224,45 @@ def solution_to_dataframe(
     ) -> pd.DataFrame:
     """Convert a CP-SAT solution to a DataFrame with weeks as rows and names as columns"""
 
+    status_label = {
+        "vacation": "(Vacation)",
+        "no a": "(No A)",
+        "no call": "(No Call)",
+        "if needed": "(If Needed)",
+    }
+
     data = {"Week": schedule.weeks}
     for p in schedule.names:
         column = []
         for w in schedule.weeks:
             matching = (
-                t for t in schedule.tasks 
+                t for t in schedule.tasks
                 if solver.Value(assignments[(p, w, t)]) == 1
             )
             assigned = next(matching, "")
-            column.append(assigned)
+            status = schedule.status_during_week(p, w)
+            prefix = status_label.get(status, "")
+            column.append(f"{prefix} {assigned}".strip() if prefix else assigned)
         data[p] = column
     df = pd.DataFrame(data)
+
+    fellow_col = schedule._fellow_schedule.set_index("Week")["Fellow"]
 
     for task in schedule.tasks:
         total_row = {"Week": f"{task} total"}
         for p in schedule.names:
-            total_row[p] = (df[p] == task).sum()
+            assigned_count = sum(
+                1 for w in schedule.weeks
+                if solver.Value(assignments[(p, w, task)]) == 1
+            )
+            target = schedule.target_task_amount(p, task)
+            total_row[p] = f"({target}) {assigned_count}"
         df = pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
+
+    fellow_values = [
+        fellow_col.get(w, "") for w in schedule.weeks
+    ] + [""] * len(schedule.tasks)
+    df["Fellow"] = fellow_values
 
     return df
 
