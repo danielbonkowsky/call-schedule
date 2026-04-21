@@ -236,7 +236,9 @@ def main() -> int:
                 for w in schedule.weeks:
                     model.Add(assignments[(p, w, t)] == 0)
 
-    # Total assignments per person should be close to their target total (soft constraint)
+    # Total assignments per person should match their target
+    # - If total target < 6: exact match required per task type (hard constraint)
+    # - If total target >= 6: ±1 deviation is free; beyond that, TASK_COUNT_DEVIATION_PENALTY applies
     total_deviation_penalties = []
     max_weeks = len(schedule.weeks)
     for p in schedule.names:
@@ -244,16 +246,22 @@ def main() -> int:
             schedule.target_task_amount(p, t) for t in schedule.tasks
         )
         total_assigned = sum(
-            assignments[(p, w, t)] 
+            assignments[(p, w, t)]
             for w in schedule.weeks for t in schedule.tasks
         )
-        diff = model.NewIntVar(-max_weeks, max_weeks, f"total_diff_{p}")
-        model.Add(diff == total_assigned - total_target)
-        abs_diff = model.NewIntVar(0, max_weeks, f"total_abs_diff_{p}")
-        model.AddAbsEquality(abs_diff, diff)
-        total_deviation_penalties.append(
-            TASK_COUNT_DEVIATION_PENALTY * abs_diff
-        )
+        if total_target < 6:
+            for t in schedule.tasks:
+                task_target = schedule.target_task_amount(p, t)
+                task_assigned = sum(assignments[(p, w, t)] for w in schedule.weeks)
+                model.Add(task_assigned == task_target)
+        else:
+            diff = model.NewIntVar(-max_weeks, max_weeks, f"total_diff_{p}")
+            model.Add(diff == total_assigned - total_target)
+            abs_diff = model.NewIntVar(0, max_weeks, f"total_abs_diff_{p}")
+            model.AddAbsEquality(abs_diff, diff)
+            penalized_diff = model.NewIntVar(0, max_weeks, f"penalized_diff_{p}")
+            model.Add(penalized_diff >= abs_diff - 1)
+            total_deviation_penalties.append(TASK_COUNT_DEVIATION_PENALTY * penalized_diff)
 
     model.Minimize(
         sum(a_close_penalties) 
