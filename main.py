@@ -103,30 +103,33 @@ def main() -> int:
             )
             a_close_penalties.append(A_CLOSE_PENALTY * close)
 
-    # B’, B, and C call can be assigned up to 2 weeks in a row
+    # B', B, and C call can be assigned up to 2 weeks in a row
+    # Exception: persons with > 10 C assignments may be assigned C 3 weeks in a row
     for p in schedule.names:
+        high_c = schedule.target_task_amount(p, "C") > 10
         for i in range(len(schedule.weeks) - 2):
             w1 = schedule.weeks[i]
             w2 = schedule.weeks[i + 1]
             w3 = schedule.weeks[i + 2]
             model.Add(
-                assignments[(p, w1, "B'")] 
-                + assignments[(p, w2, "B'")] 
-                + assignments[(p, w3, "B'")] 
+                assignments[(p, w1, "B'")]
+                + assignments[(p, w2, "B'")]
+                + assignments[(p, w3, "B'")]
                 <= 2
             )
             model.Add(
-                assignments[(p, w1, "B")] 
-                + assignments[(p, w2, "B")] 
-                + assignments[(p, w3, "B")] 
+                assignments[(p, w1, "B")]
+                + assignments[(p, w2, "B")]
+                + assignments[(p, w3, "B")]
                 <= 2
             )
-            model.Add(
-                assignments[(p, w1, "C")] 
-                + assignments[(p, w2, "C")] 
-                + assignments[(p, w3, "C")] 
-                <= 2
-            )
+            if not high_c:
+                model.Add(
+                    assignments[(p, w1, "C")]
+                    + assignments[(p, w2, "C")]
+                    + assignments[(p, w3, "C")]
+                    <= 2
+                )
 
     # Prefer C call in 2-week blocks over 1-week blocks (soft constraint)
     c_streak_penalties = []
