@@ -4,12 +4,13 @@ from ortools.sat.python import cp_model
 from util import parse_validate_args, build_schedule, solution_to_dataframe
 
 
-A_CLOSE_PENALTY = 10              # penalty for scheduling someone to A call twice with less than two weeks between
-NO_CALL_PENALTY = 10              # penalty for scheduling someone during a week they requested "no call"
-NO_A_PENALTY = 10                 # penalty for scheduling someone during a week they requested "no a"
+A_CLOSE_PENALTY = 7               # penalty for scheduling someone to A call twice with less than two weeks between
+NO_CALL_PENALTY = 7               # penalty for scheduling someone during a week they requested "no call"
+NO_A_PENALTY = 7                  # penalty for scheduling someone during a week they requested "no a"
 IF_NEEDED_PENALTY = 3             # penalty for scheduling someone during a week they requested "if needed"
-TASK_COUNT_DEVIATION_PENALTY = 10 # penalty for deviating from someone's task count (per deviation)
-C_STREAK_PENALTY = 3              # penalty for scheduling C call in a one week block, rather than two weeks
+TASK_COUNT_DEVIATION_PENALTY = 20 # penalty for deviating from someone's task count (per deviation)
+ISOLATED_C_STREAK_PENALTY = 3     # penalty for scheduling C call in a one week block, rather than two weeks
+PAIR_C_STREAK_PENALTY = 1         # penalty for scheduling C call in a pair rather than three weeks
 
 
 def main() -> int:
