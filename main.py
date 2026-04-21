@@ -163,18 +163,41 @@ def main() -> int:
                 )
                 c_streak_penalties.append(PAIR_C_STREAK_PENALTY * pair_no_ext)
 
-    # Can't give three assignments in a row (regardless of type)
+    # Can't give three assignments in a row (regardless of type), unless all 
+    # three are C call for a person with > 10 C assignments
     for p in schedule.names:
+        high_c = schedule.target_task_amount(p, "C") > 10
         for i in range(len(schedule.weeks) - 2):
-            w1, w2, w3 = schedule.weeks[i]
+            w1 = schedule.weeks[i]
             w2 = schedule.weeks[i + 1]
             w3 = schedule.weeks[i + 2]
-            model.Add(
-                sum(
-                    assignments[(p, w, t)] 
-                    for w in [w1, w2, w3] for t in schedule.tasks
-                ) <= 2
+            total_assigned = sum(
+                assignments[(p, w, t)]
+                for w in [w1, w2, w3] for t in schedule.tasks
             )
+            if high_c:
+                all_c = model.NewBoolVar(f"all_c_{p}_{i}")
+                model.AddMinEquality(all_c, [
+                    assignments[(p, w1, "C")],
+                    assignments[(p, w2, "C")],
+                    assignments[(p, w3, "C")],
+                ])
+                model.Add(total_assigned <= 2 + all_c)
+            else:
+                model.Add(total_assigned <= 2)
+    
+    # Never can give 4 assignments in a row
+    for p in schedule.names:
+        for i in range(len(schedule.weeks) - 3):
+            w1 = schedule.weeks[i]
+            w2 = schedule.weeks[i + 1]
+            w3 = schedule.weeks[i + 2]
+            w4 = schedule.weeks[i + 3]
+            total_assigned = sum(
+                assignments[(p, w, t)]
+                for w in [w1, w2, w3, w4] for t in schedule.tasks
+            )
+            model.add(total_assigned <= 3)
 
     # Can't assign call on BOTH 12/21 and 12/28 (within the same year)
     christmas_weeks = {
