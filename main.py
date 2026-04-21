@@ -132,8 +132,10 @@ def main() -> int:
                 )
 
     # Prefer C call in 2-week blocks over 1-week blocks (soft constraint)
+    # For persons with > 10 C assignments, 3-week blocks are slightly preferred over 2-week blocks
     c_streak_penalties = []
     for p in schedule.names:
+        high_c = schedule.target_task_amount(p, "C") > 10
         for i in range(len(schedule.weeks) - 2):
             w1 = schedule.weeks[i]
             w2 = schedule.weeks[i + 1]
@@ -142,12 +144,24 @@ def main() -> int:
             model.AddMinEquality(
                 isolated,
                 [
-                    assignments[(p, w2, "C")], 
-                    assignments[(p, w1, "C")].Not(), 
+                    assignments[(p, w2, "C")],
+                    assignments[(p, w1, "C")].Not(),
                     assignments[(p, w3, "C")].Not()
                 ]
             )
-            c_streak_penalties.append(C_STREAK_PENALTY * isolated)
+            c_streak_penalties.append(ISOLATED_C_STREAK_PENALTY * isolated)
+            if high_c:
+                # Penalize pairs that don't extend into a triple (prefers triples over pairs)
+                pair_no_ext = model.NewBoolVar(f"c_pair_no_ext_{p}_{i}")
+                model.AddMinEquality(
+                    pair_no_ext,
+                    [
+                        assignments[(p, w1, "C")],
+                        assignments[(p, w2, "C")],
+                        assignments[(p, w3, "C")].Not(),
+                    ]
+                )
+                c_streak_penalties.append(PAIR_C_STREAK_PENALTY * pair_no_ext)
 
     # Can't give three assignments in a row (regardless of type)
     for p in schedule.names:
